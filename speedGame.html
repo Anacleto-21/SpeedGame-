@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html style="text-align: center;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+    content="width=device-width, initial-scale=0.95">
+    <style>
+        html {
+            font-family: 'Courier New', courier, monospace;
+            text-align: center;
+            touch-action: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0 20px;
+            touch-action: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 25px;
+            box-sizing: border-box;
+        }
+
+        #gameContext {
+            display: block;
+        }
+
+        #option {
+            background-color: yellow;
+            width: 60px;
+            position: relative;
+            padding: 0;
+        }
+
+        
+    </style>
+</head>
+<body>
+    <h1>SPEED GAME</h1>
+    <p id="option">
+        option
+    </p>
+    <div class="header">
+        <h2 id="score">score: 0</h2>
+        <h2 id="timer">time: 10</h2>
+    </div>
+    <canvas id="gameContext">
+    </canvas>
+    <script>
+        //prevent default
+        document.addEventListener("touchstart", function(event) {
+            event.preventDefault();
+        }, {
+            passive: false
+        });
+
+        //variabili
+        let gameContext = document.getElementById("gameContext");
+        let drawer;
+        let xClick
+        let yClick;
+        let squareBad = [];
+        let punteggio = 1;
+        let punti = 0;
+        let timer = 10;
+        let bestScore = 0;
+        let option = document.getElementById("option");
+        //variabili dimensioni 
+        pageWidth = window.innerWidth;
+        pageHeight = window.innerHeight;
+        let blueWidth = pageWidth / 1.1542857143;
+        let blueHeight = pageHeight / 1.3416666667;
+        gameContext.width = blueWidth;
+        gameContext.height = blueHeight;
+
+        //drawer
+        drawer = gameContext.getContext("2d");
+        option.style.left = pageWidth / 2 - 30 - 15+ "px";
+
+        //sovrapposizione
+        function sovrapposition (x1, y1, x2, y2) {
+            return x1 < x2 + 50 && x1 + 50 > x2 && y1 < y2 + 50 && y1 + 50 > y2;
+        }
+
+        //funzione random
+        function theRandom () {
+            //randomizer
+            do {
+                xClick = Math.random() * (blueWidth - 50);
+                yClick = Math.random() * (blueHeight - 50);
+            } while (squareBad.some(square => sovrapposition (xClick, yClick, square.x, square.y)));
+
+            //drawer sfondo
+            drawer.fillStyle = "blue";
+            drawer.fillRect(0, 0, blueWidth, blueHeight);
+
+            //drawer green
+            drawer.fillStyle = "green";
+            drawer.fillRect(xClick, yClick, 50, 50);
+
+            //drawer red
+            for (let square of squareBad ) {
+                do {
+                    square.x = Math.random() * (blueWidth - 50);
+                    square.y = Math.random() * (blueHeight - 50);
+                } while (sovrapposition(square.x, square.y, xClick, yClick));
+            }
+            drawer.fillStyle = "red";
+            for (let square of squareBad) {
+                drawer.fillRect(square.x, square.y, 50, 50);
+            }
+        }
+
+        //funzione random bad
+        function theRandomBad () {
+            //randomizer
+            let newSquare;
+            do {
+                newSquare = {
+                    x: Math.random() * (blueWidth - 50),
+                    y: Math.random() * (blueHeight - 50)
+                }
+            } while (sovrapposition(newSquare.x, newSquare.y, xClick, yClick));
+
+            //add square bad
+            squareBad.push(newSquare);
+        }
+
+        theRandom ();
+
+        //evento tocco
+        gameContext.addEventListener("touchstart", function (event) {
+            //tocco verde
+            let rect = gameContext.getBoundingClientRect();
+            let tocco = event.touches[0];
+            let thisX = tocco.clientX - rect.left;
+            let thisY = tocco.clientY - rect.top;
+            if (thisX >= xClick && thisX <= xClick + 50 && thisY >= yClick && thisY <= yClick + 50) {
+                punteggio++;
+                punti++;
+                document.getElementById("score").innerText = "score: " + punti;
+                if (punteggio % 1 === 0) {
+                    theRandomBad ();
+                }
+                //timer
+                if (punteggio === 2) {
+                    document.getElementById("option").innerText = " * ";
+                    let interval = setInterval(function() {
+                        timer--
+                        document.getElementById("timer").innerText = "time: " + timer;
+                        if (timer <= 0) {
+                            clearInterval(interval);
+                            if (punti > bestScore) {
+                                bestScore = punti;
+                            }
+                            alert("your score: " + punti + "\n\nbest score: " + bestScore);
+                            restart();
+                        }
+                    },
+                        1000);
+                }
+
+                theRandom();
+            }
+            //tocco rosso
+            for (let square of squareBad) {
+                if (thisX >= square.x && thisX <= square.x + 50 && thisY >= square.y && thisY <= square.y + 50) {
+                    punteggio++;
+                    punti--;
+                    if (punti < 0) {
+                        punti = 0;
+                    }
+                    document.getElementById("score").innerText = "score: " + punti;
+                    theRandom ();
+                    if (punteggio % 1 === 0) {
+                        theRandomBad ();
+                    }
+                }
+            }
+        });
+
+        //restart
+        function restart() {
+            punteggio = 1;
+            punti = 0;
+            timer = 10;
+            squareBad = [];
+            document.getElementById("score").innerText = "score: 0"
+            document.getElementById("timer").innerText = "time: 10";
+            document.getElementById("option").innerText = "option";
+            theRandom();
+        }
+
+        //option
+        option.addEventListener("touchstart", function () {
+            if (timer === 10) {
+                drawer.fillStyle = "black";
+                drawer.fillRect(0, 0, blueWidth, blueHeight);
+                document.getElementById("score").innerText = "back";
+                document.getElementById("timer").innerText = "";
+                drawer.fillStyle = "white";
+                drawer.font = "21px courier new";
+                drawer.fillText("TUTORIAL", 5, 20);
+                drawer.fillText("CREDITS", 5, 236);
+                drawer.fillText("SHARE", 5, 334)
+                drawer.font = "16px courier new";
+                drawer.fillText("The goal of the game is to score as", 5, 46);
+                drawer.fillText("many points as possible before time", 5, 62);
+                drawer.fillText("runs out. You earn one point every", 5, 78);
+                drawer.fillText("time you click on a green square,", 5, 94);
+                drawer.fillText("but you lose one point every time", 5, 110);
+                drawer.fillText("you click on a red square. To start the game", 5, 126);
+                drawer.fillText("the game, click on the green square, ", 5, 142);
+                drawer.fillText("and the 10-second timer will begin", 5, 158);
+                drawer.fillText("automatically.", 5, 174);
+                drawer.fillText("Have fun!", 5, 190);
+                drawer.fillText("This game was designed and", 5, 268);
+                drawer.fillText("developed by Tommaso De Micheli", 5, 284);
+                drawer.fillText("Share this game and challenge your", 5, 366);
+                drawer.fillText("friends to beat your best score!", 5, 382);
+
+                score.addEventListener("touchstart", function() {
+                    restart();
+                });
+            }
+        });
+
+
+        //meccanica di gioco: il theGameContext disegna tutto quello che va disegnato. la 6differenza sta che non vengono date coordinate specifiche per i "bottoni" ma si utilizzeranno delle variabili che cambieranno in maniera casuale ad ogni punto. per verificare il tocco non sarà quindi necessario possedere una variabile dedicata solo ai bottoni ma si verifericheranno le cooedinate x e y dell'oggetto. in questo stesso modo funzioneranno le bombe e altri ostacoli/power-up/elementi nel gioco
+
+        //modifiche: best score, pulsante opzioni => crediti e share, (¿account instagram?), sito web, pubblicità
+    </script>
+</body>
+</html>
